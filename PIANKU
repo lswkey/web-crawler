@@ -1,0 +1,148 @@
+import xlwt
+import pyperclip
+import requests
+import time
+from lxml import etree
+import random
+import html
+import re
+import urllib3
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)  #控制台出现这种错误：InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+# import json
+# import os
+# from urllib import parse
+headers = {
+    "cookie":"PHPSESSID=kv29qr42gek0daasl0ufvd9643; Hm_lvt_5a21a69d1b034aed24dcda25771e8135=1588149356,1588149398,1588149409,1588149426; Hm_lpvt_5a21a69d1b034aed24dcda25771e8135="+str(int(time.time())),        
+    "user-agent":"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.9 Safari/537.3"
+}
+def save_biao(data,f_name):
+    try:
+        workbook=xlwt.Workbook(encoding='utf-8')
+        booksheet=workbook.add_sheet('Sheet 1', cell_overwrite_ok=True)
+        for i,row in enumerate(data):
+            for j,col in enumerate(row):
+                booksheet.write(i,j,col)
+        workbook.save('E:\\数据\\'+f_name+'.xlsx')
+        print("该页数据保存成功！")
+    except Exception as e:
+        print("保存失败！")
+    
+def pk_1(page): #电影数据数据
+    movs = [] #每一页的电影数据
+    movs.append(['name','nianf','guoj','yuy','leix','daoy','zhuy','jianj','lianj','xiazdz','tupdz'])
+    print("第"+page+"页")
+    url ='https://www.pianku.tv/mv/----score-1-'+page+'.html'
+    response = requests.get(url,headers=headers,verify=False)
+    response.encoding = "utf-8"
+    data  = response.text
+    data1 = re.findall("<div class=\"li-img\">([\s\S]*?)<a href=\"(.*?)\" title=\"",data)
+    try:
+        for data in data1:
+            mov_url = "https://www.pianku.tv"+data[1]
+            mov = pk_2(mov_url)
+            if(mov==None ):
+                continue
+            movs.append(mov)
+            time.sleep(random.randint(10,20))
+            
+        f_name = 'PKMOVS_'+str(page)
+        save_biao(movs,f_name)
+    except Exception as e:
+        print("数据保存问题！")
+def pk_2(url):
+    try:
+        print(url)
+        response = requests.get(url,headers=headers,verify=False)
+        time.sleep(1)
+        response.encoding = "utf-8"
+        text = response.text
+        list1=[]
+        name  = re.findall("<h1>(.*?)<span class=\"year\">\((\d+)\)<\/span><\/h1>",text)
+        list1.append(name[0][0])
+        nianf = name[0][1]
+        list1.append(name[0][1])
+        guoj = re.findall("地区：<\/span>.*\"_blank\">(.*?)<\/a><\/div><div><span>语言",text)[0]
+        list1.append(guoj)
+        yuy = re.findall("<div><span>语言.*_blank\">(.*?)<\/a><\/div><div><span>上映：",text)[0]
+        list1.append(yuy)
+        leix = text_hb(text, "类型：.*?_blank\"(.*)<\/div><div><span>地","([\u4e00-\u9fa5]{2,20})")
+        list1.append(leix)
+        daoy = text_hb(text, "导演：.*?_blank\"(.*)<\/div><div><span>编剧","([\u4e00-\u9fa5]{2,20})")
+        list1.append(daoy)
+        zhuy = text_hb(text, "主演：.*?_blank\"(.*)<\/div><div><span>类型","([\u4e00-\u9fa5]{2,20})")
+        list1.append(zhuy)
+        jianj = re.findall("<p class=\"sqjj_a\" style=\"display: none;\">(.*)<span class=\"sq_jj\">",text)[0].replace('<br>',"")
+        list1.append(jianj)
+        xz_url ="https://www.pianku.tv/ajax/downurl/"+re.findall("var id='(.*)';",text)[0]+"_mv/"
+        list2 = list1
+        list1 = pk_zy(url,xz_url,list2)
+        tupdz = re.findall("<img\ssrc=\"(.*)\"\swidth=\"100%\"\salt=",text)[0]
+        list1.append(tupdz)
+        print(list1)
+#             data  = [[name,nianf,guoj,yuy,leix,daoy,zhuy,jianj,tupdz]] #name,nianf,guoj,yuy,leix,daoy,zhuy,jianj,lianj,xiazdz,tupdz
+#             print("片名："+name+"国家："+guoj+"语言："+yuyu+"导演："+daoy+"主演："+zhuy+"简介："+jianj+"图片地址："+tupdzu+"链接："+lj_url)
+        return list1
+    except Exception as e:
+        print(url+"获取数据错误！")
+        
+def text_hb(text,t1,t2):
+    text1 = re.findall(t1,text)
+    text2 = re.findall(t2,text1[0])
+    b=""
+    for i in text2:
+        b = b+" "+i
+    return b
+    
+def pk_zy(url,xz_url,list2): #url
+    try:
+        driver = webdriver.Chrome("C:\\pythongj/chromedriver.exe")
+        driver.get(url)
+        WebDriverWait(driver,30).until(EC.presence_of_element_located((By.XPATH,'//*[@id="url"]/div[2]/div/ul[1]/li[1]/a'))).click()
+        text = driver.page_source
+        lianj  = re.findall("url: '(.*)',",text)[0]
+        print("观看地址："+lianj)
+        list2.append(lianj)
+    except Exception as e:
+        print("观看电影获取失败！")
+        list2.append(url)
+    finally:
+        driver.quit();
+        
+    
+    #下载页面
+    response1_xz = requests.get(xz_url)
+    response1_xz.encoding = "utf-8"
+    text = response1_xz.text
+    dz  = "https://www.pianku.tv"+re.findall("<span><a href=\"(.*?)\" target=\"_blank\">详情<\/a><\/span>",text)[0]
+    time.sleep(random.randint(5,10))
+    try:
+        driver = webdriver.Chrome("C:\\pythongj/chromedriver.exe")
+        driver.get(dz)
+        time.sleep(random.randint(5,10))
+        driver.find_element_by_id('d1').find_elements_by_tag_name('i')[0].click()
+        xiazdz = pyperclip.paste()  # 将剪贴板的内容粘贴下来
+        print("下载地址："+xiazdz)
+        list2.append(xiazdz)
+    except Exception as e:
+        print("下载地址获取失败！")
+        list2.append(dz)
+    finally:
+        driver.quit();
+        
+    return list2
+    
+def main():#详情页数据
+    for i in range(20):
+        pk_1(str(i+51))
+        time.sleep(random.randint(60,100))
+
+    
+if __name__ == "__main__":
+    print("开始——————————>爬取！")
+    main()
