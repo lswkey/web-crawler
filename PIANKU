@@ -1,4 +1,6 @@
+#################################################可设置代理调整爬取等待时间############################################
 import xlwt
+import xlrd #读
 import pyperclip
 import requests
 import time
@@ -139,10 +141,43 @@ def pk_zy(url,xz_url,list2): #url
     
 def main():#详情页数据
     for i in range(20):
-        pk_1(str(i+51))
+        pk_1(str(i+1))
         time.sleep(random.randint(60,100))
 
     
 if __name__ == "__main__":
     print("开始——————————>爬取！")
     main()
+    #main1(20) #合并数据
+
+#########################    合并数据          #######################################
+def HB_Q(page,movs):
+    f_name = 'PKMOVS_'+str(page)+'.xlsx'
+    mov = xlrd.open_workbook('E:\\数据\\'+f_name)
+    table = mov.sheet_by_name("Sheet 1")
+    nrows = table.nrows  #行数
+    ncols = table.ncols #列数
+    if(page==1): #获取表头
+        movs.append(table.row_values(0))
+    for i in range(nrows):
+        if(i==0):
+            continue
+        movs.append(table.row_values(i))
+    return movs
+
+def main1(count):
+    #取
+    movs = []
+    for page in range(count):
+        movs = HB_Q(page+1,movs)
+    #写
+    try:
+        text = xlwt.Workbook(encoding="utf-8")
+        textsheet = text.add_sheet('Sheet 1',cell_overwrite_ok = True)
+        for i,row in enumerate(movs):
+            for j,col in enumerate(row):
+                textsheet.write(i,j,col)
+        text.save("E:\数据\PK_MOVS.xlsx")
+        print("合并成功！")
+    except Exception as e:
+        print(e)
