@@ -1,0 +1,43 @@
+# 本次测试数据来源于花刺代理上所爬取的高匿IP
+import requests
+import time
+import re
+#读取本地所存IP的txt文件
+filename = "C:/Users/Administrator\Desktop\ip.txt"
+ip_s = []
+Efiled = []
+with open(filename,"r") as fe:
+    while True:
+        lines = fe.readline()
+        if not lines:
+            break
+        ip_s.append(lines.replace("\n",""))
+agent_ips = ip_s
+
+#进行筛选过滤
+def ip_test():
+    true_ip = []
+    headers = {
+    "Cookie":"channelid=0; sid="+str(int(time.time()*1000000)+10000),
+    "Host":"dev.kdlapi.com",
+    "Upgrade-Insecure-Requests":"1",
+    "User-Agent":"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
+    }
+    data = {"info": "biu~~~ send post request"}
+    for ip in agent_ips:
+        time.sleep(2)
+        ips = re.findall("(h.*?)://",ip)[0]
+        ipn = re.findall("(\d+.\d+.\d+.\d+)",ip)[0] 
+        proxies = {
+                ips:"%(ip)s" % {'ip':ip}
+                        }
+        try:
+            r = requests.post('http://dev.kdlapi.com/testproxy', headers=headers,data = data,proxies=proxies,timeout=2) #加一个proxies参数
+            if(ipn!='' and re.findall(ipn,r.text)[0]!=''):
+                print("{%s}=={%s}"%(proxies,r.text))
+            true_ip.append(ip)
+        except Exception as e:
+            print("无效ip："+ipn)
+    print(true_ip)
+if __name__ == '__main__':
+    ip_test()
