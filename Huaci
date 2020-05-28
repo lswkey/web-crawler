@@ -53,8 +53,8 @@ def agent_ip(i):
 
 #################################### 合并数据  #############################
 #取数据
-def HB_Q(page,ips):
-    f_name = 'ip_'+str(page)+'.xlsx'
+def HB_Q(n1,page,ips):
+    f_name = 'ip_'+str(n1+page)+'.xlsx'
     ip = xlrd.open_workbook('E:\\数据\\ip\\'+f_name)
     table = ip.sheet_by_name("Sheet 1")
     nrows = table.nrows  #行数
@@ -67,11 +67,12 @@ def HB_Q(page,ips):
         ips.append(table.row_values(i))
     return ips
 
-def main1(count):
+def main1(n1,n2):
     #取
+    count = n2-n1
     ips = []
     for page in range(count):
-        ip = HB_Q(page+1,ips)
+        ip = HB_Q(n1,page,ips)
     #写
     try:
         text = xlwt.Workbook(encoding="utf-8")
@@ -93,5 +94,5 @@ def main():
         time.sleep(random.randint(1,5))
 if __name__ =='__main__':
     main()#爬取
-    main(5) #合并5页数
+    main(1,5) #合并起始页数
     
