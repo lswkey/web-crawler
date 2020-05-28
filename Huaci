@@ -1,0 +1,97 @@
+import time
+import random
+from lxml import etree
+import requests
+import re
+import xlrd #读
+import xlwt #写
+headers = {
+  'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',
+    'Cookie': '_free_proxy_session=BAh7B0kiD3Nlc3Npb25faWQGOgZFVEkiJTljYWExZDU2MWU1MmQxNmY4ZTdlNGFiYTE5N2YxMWFjBjsAVEkiEF9jc3JmX3Rva2VuBjsARkkiMXF4K0RFTjg2cHdKb25acEx4UzZNdkNBbXpkdWU5ajlvcHNla050TW05THc9BjsARg%3D%3D--6f4ba181bddd6e771d7c1d61a8aadbf7389b5ff8; Hm_lvt_0cf76c77469e965d2957f0553e6ecf59='+str(int(time.time()))+'; Hm_lpvt_0cf76c77469e965d2957f0553e6ecf59='+str(int(time.time())+10000),                    
+}
+#有效的代理ip
+agent_ips = ['http://117.141.114.57:8080', 
+    'http://114.98.27.122:4216',
+     'http://114.98.27.122:4216',
+     'http://223.241.6.15:4216', 
+    'http://218.58.194.162:8060']
+
+def save_ip(data,ii):
+    try:
+        workbook=xlwt.Workbook(encoding='utf-8')
+        booksheet=workbook.add_sheet('Sheet 1', cell_overwrite_ok=True)
+        for i,row in enumerate(data):
+            for j,col in enumerate(row):
+                booksheet.write(i,j,col)
+        workbook.save("E:\\数据\\ip\\ip_"+str(ii)+".xlsx")
+        print("ip"+str(ii)+"保存成功！")
+    except Exception as e:
+        print("ip"+str(ii)+"保存失败！")
+        
+def agent_ip(i):
+    ct = len(agent_ips)-1
+    ip = agent_ips[random.randint(0,ct)]
+    req = requests.get("https://www.xicidaili.com/nn/"+str(i),headers=headers,proxies={"http":ip},timeout=10)
+    req.encoding = 'utf-8'
+    data = etree.HTML(req.text)
+    datas = data.xpath("//tr[@class='odd']")
+    list_ip = []
+    for da in datas:
+        list1 = []
+        da_agreement = da.xpath('./td[6]/text()')[0]
+        da_ip = da.xpath('./td[2]/text()')[0]
+        da_port = da.xpath('./td[3]/text()')[0]
+        da_region = da.xpath('./td[4]/a/text()')#.group(1)#.strip()#.extract_first().strip() #.extract_first()
+        da_time = da.xpath('./td[9]/text()')[0]
+        list1.append(da_agreement)
+        list1.append(da_ip)
+        list1.append(da_port)
+        list1.append(''.join(da_region))
+        list1.append(da_time)
+        list_ip.append(list1)
+    return list_ip
+
+#################################### 合并数据  #############################
+#取数据
+def HB_Q(page,ips):
+    f_name = 'ip_'+str(page)+'.xlsx'
+    ip = xlrd.open_workbook('E:\\数据\\ip\\'+f_name)
+    table = ip.sheet_by_name("Sheet 1")
+    nrows = table.nrows  #行数
+    ncols = table.ncols #列数
+    if(page==1): #获取表头
+        ips.append(table.row_values(0))
+    for i in range(nrows):
+        if(i==0):
+            continue
+        ips.append(table.row_values(i))
+    return ips
+
+def main1(count):
+    #取
+    ips = []
+    for page in range(count):
+        ip = HB_Q(page+1,ips)
+    #写
+    try:
+        text = xlwt.Workbook(encoding="utf-8")
+        textsheet = text.add_sheet('Sheet 1',cell_overwrite_ok = True)
+        for i,row in enumerate(ips):
+            for j,col in enumerate(row):
+                textsheet.write(i,j,col)
+        text.save("E:\数据\ip\ips.xlsx")
+        print("合并成功！")
+    except Exception as e:
+        print(e)
+############################################################################################
+def main():
+    for ii in range(2):#设置页数-1
+        if(ii==0):
+            continue
+        data = agent_ip(ii)
+        save_ip(data,ii)
+        time.sleep(random.randint(1,5))
+if __name__ =='__main__':
+    main()#爬取
+    main(5) #合并5页数
+    
