@@ -48,6 +48,7 @@ def agent_ip(i):
         list1.append(da_port)
         list1.append(''.join(da_region))
         list1.append(da_time)
+        list1.append(da_agreement.lower()+"://"+da_ip+":"+da_port)
         list_ip.append(list1)
     return list_ip
 
